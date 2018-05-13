@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=0.5, maximum-scale=0.5, minimum-scale=0.5, user-scalable=no">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="full-screen" content="yes">
+    <title>Promise</title>
+    <link rel="stylesheet" href="lib/bootstrap-4.0.0-dist/css/bootstrap.min.css">
+    <style>
+
+         .contenner{
+            background: #FD7E00;
+            height: 1500px;
+        }
+
+        .header{
+            background: rgb(255, 0, 200); 
+        }
+
+        .add_banner{
+            width: 90%;
+            margin: auto;
+        }
+
+        #add_value{
+            width: 50%;
+            height: 50px;
+        }
+
+        .temp_div{
+            margin-top: 20px;
+        }
+
+        #add_name{
+            height: 50px;
+            width: 20%;
+            margin-left: 6px;
+        }
+
+        .add_banner button{
+            width: 15%;
+            height: 50px;
+            margin-left: 6px;
+        }
+
+        .show_data {
+            width: 80%;
+            margin: auto;
+        }
+
+        .show_data font{
+            color: white;
+        }
+
+        .show_data li{
+            border-bottom:1px solid #ccc;
+        }    
+
+    </style>
+</head>
+
+<body>
+<div class="contenner">
+
+    <div class="header">
+    <div align="center">
+    <font size="11" color="white" >时光邮局</font>
+    </div>
+    <div  class="show_size" >
+    <div align="center">
+        <font size="5" color="white" >公开信：</font> 
+        <font id=public>0</font>
+        <font  size="4" color="white">已开启：</font>
+        <font id=alreadReadPublic>0</font>
+        <font  size="4" color="white">未开启：</font>
+        <font id=unReadPublic>0</font>
+    </div>
+    <div align="center">
+        <font size="5" color="white" >私信：</font> 
+        <label id=private>0</label>
+        <font  size="4" color="white">已开启：</font>
+        <font id=alreadReadPrivate>0</font>
+        <font  size="4" color="white">未开启：</font>
+        <label id=unReadPrivate>0</font>
+    </div>
+    </div>
+
+    <div align="center">
+        <button class="write">写信</button>
+        <button class="read">拆信</button>
+    </div>
+    </div>
+
+<!-- 弹窗的部分html设计 -->
+<div id="login">
+     <h2><img src="../img/login_wrong.png" class="close">登录弹窗</h2> 
+    <form action="">
+        <div class="form-group">
+            <label for="user">用户名</label>
+            <input type="text" id="user" name="user" class="form-control" placeholder=" 请输入用户名">
+        </div>
+        <div class="form-group">
+            <label for="pwd">密 码</label>
+            <input type="password" id="pwd" name="pwd" placeholder=" 请输入密码" class="form-control">
+        </div>
+        <button class="btn">登 录</button>    
+        <div id="other">    <a href="#">忘记密码</a>|<a href="#">注册用户</a> 
+        </div>
+    </form>
+</div>
+<!-- 遮罩层的div -->
+<div id="dropback"></div>
+
+
+    <div class="show_data">
+        <div id="myList" class="temp_div"/>
+    </div>
+
+</div>
+<script src=lib/jquery-3.3.1.min.js></script>
+<script src=lib/nebPay.js></script>
+<script src=lib/bootstrap-4.0.0-dist/js/bootstrap.min.js></script>
+<script src=lib/nebulas.js></script>
+<script>
+
+    "use strict";
+
+    var dappAddress = "n1g1r9oRreBz5CQnnD43RDSaJxTj1XG17MN";
+
+    var nebulas = require("nebulas"),
+        Account = nebulas.Account,
+        neb = new nebulas.Neb();
+    neb.setRequest(new nebulas.HttpRequest("https://testnet.nebulas.io"));
+    //neb.setRequest(new nebulas.HttpRequest("https://mainnet.nebulas.io"));
+
+    window.onload = function(){
+            getSize();
+            getData();
+    }
+
+    function getSize(){
+
+        var from = Account.NewAccount().getAddressString();
+        var value = "0";
+        var nonce = "0"
+        var gas_price = "1000000"
+        var gas_limit = "2000000"
+        var callFunction = "size";
+        //var callArgs = "[\"" + $("#search_value").val() + "\"]"; //in the form of ["args"]
+        var callArgs = "[\"100000\",\"0\"]"
+        var contract = {
+            "function": callFunction,
+            "args": callArgs
+        }
+        neb.api.call(from,dappAddress,value,nonce,gas_price,gas_limit,contract).then(function (resp) {
+            showSize(resp)
+            }).catch(function (err) {
+            //cbSearch(err)
+            console.log("error:" + err.message)
+        })
+    }
+
+    function showSize(resp){
+        var myJson = resp.result   
+        try{
+            myJson = JSON.parse(myJson)
+        }catch (err){
+                //result is the error message
+        }
+
+        var arr = myJson.split(",");
+        $("#public").text(arr[0]);
+        $("#alreadReadPublic").text(arr[1]);
+        $("#unReadPublic").text(parseInt(arr[0])-parseInt(arr[1]));
+        $("#private").text(arr[2]);
+        $("#alreadReadPrivate").text(arr[3]);
+        $("#unReadPrivate").text(parseInt(arr[2])-parseInt(arr[3]));
+    }
+
+
+    function getData(){
+
+        var from = Account.NewAccount().getAddressString();
+        var value = "0";
+        var nonce = "0"
+        var gas_price = "1000000"
+        var gas_limit = "2000000"
+        var callFunction = "forEachPublic";
+        //var callArgs = "[\"" + $("#search_value").val() + "\"]"; //in the form of ["args"]
+        var callArgs = "[\"100000\",\"0\"]"
+        var contract = {
+            "function": callFunction,
+            "args": callArgs
+    }   
+    neb.api.call(from,dappAddress,value,nonce,gas_price,gas_limit,contract).then(function (resp) {
+        showData(resp)
+    }).catch(function (err) {
+        //cbSearch(err)
+        console.log("error:" + err.message)
+    })
+    }
+
+    function showData(resp){
+        var myJson = resp.result   
+        try{
+            myJson = JSON.parse(myJson)
+        }catch (err){
+                //result is the error message
+        }
+
+        var myList = document.getElementById("myList");
+		
+		var ulText = "<ul style=\"list-style-type:none\">";
+		
+		if(myJson.length > 0){
+			for(var i=0;i<myJson.length;i++){
+                var newDate = new Date();
+                newDate.setTime(parseInt(myJson[i].writeTime));
+                var date = newDate.toLocaleDateString();
+				ulText += "<li><div><font size=\"6\">" + myJson[i].title + "</font></div> <div><font size=\"5\">" + myJson[i].content + "</font></div> <div align=\"right\"> <font size=\"5\">" + myJson[i].key + "</font>&nbsp&nbsp&nbsp<font size=\"5\">" + date + "</font><div></li>";
+			}
+		}	
+		ulText += "</ul>";
+        myList.innerHTML = ulText;
+    }
+
+
+    var NebPay = require("nebpay");     //https://github.com/nebulasio/nebPay
+    var nebPay = new NebPay();
+    var serialNumber
+
+    $("#push").click(function() {
+
+        var to = dappAddress;
+        var value = "0";
+        var callFunction = "save"
+        var key = new Date().getTime()
+        var callArgs = "[\"" + key + "\",\"" + $("#add_value").val() + "\",\"" + $("#add_name").val() + "\"]"
+
+        serialNumber = nebPay.call(to, value, callFunction, callArgs, {    //使用nebpay的call接口去调用合约,
+            listener: cbPush        //设置listener, 处理交易返回信息
+        });
+
+        intervalQuery = setInterval(function () {
+            funcIntervalQuery();
+        }, 5000);
+    });
+
+    var intervalQuery
+
+    function funcIntervalQuery() {
+        nebPay.queryPayInfo(serialNumber)
+            .then(function (resp) {
+                console.log("tx result: " + resp)   //resp is a JSON string
+                var respObject = JSON.parse(resp)
+                if(respObject.code === 0){
+                    alert(`succeed!`)
+                    clearInterval(intervalQuery)
+                }
+            })
+            .catch(function (err) {
+                console.log(err);
+            });
+    }
+
+    function cbPush(resp) {
+        console.log("response of push: " + JSON.stringify(resp))
+    }
+
+</script>
+</body>
+
+</html>
